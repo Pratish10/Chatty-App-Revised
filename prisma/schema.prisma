@@ -1,0 +1,101 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                     Int             @id @default(autoincrement())
+  name                   String?
+  email                  String?
+  emailVerified          DateTime?
+  profilePicture         String?
+  password               String?
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+  friendRequestsSent     FriendRequest[] @relation("sender")
+  friendRequestsReceived FriendRequest[] @relation("receiver")
+  friends                User[]          @relation("Friendship", references: [id])
+}
+
+model Account {
+  id                 Int      @id @default(autoincrement())
+  userId             String   @db.ObjectId
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model FriendRequest {
+  id       Int      @id @default(autoincrement())
+  sender   User     @relation("sender", fields: [senderId], references: [id])
+  senderId Int
+  receiver User     @relation("receiver", fields: [receiverId], references: [id])
+  receiverId Int
+  status   FriendRequestStatus
+}
+
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model Chat {
+  id        Int       @id @default(autoincrement())
+  chatType  String
+  members   ChatMember[]
+  messages  Message[]
+}
+
+model ChatMember {
+  id       Int      @id @default(autoincrement())
+  chat     Chat     @relation(fields: [chatId], references: [id])
+  chatId   Int
+  user     User     @relation(fields: [userId], references: [id])
+  userId   Int
+}
+
+model Message {
+  id          Int      @id @default(autoincrement())
+  chat        Chat     @relation(fields: [chatId], references: [id])
+  chatId      Int
+  sender      User     @relation(fields: [senderId], references: [id])
+  senderId    Int
+  messageText String?
+  mediaUrl    String?
+  status      String    @default("sent")
+}
+
+model Call {
+  id         Int      @id @default(autoincrement())
+  caller     User     @relation(fields: [callerId], references: [id])
+  callerId   Int
+  receiver   User     @relation(fields: [receiverId], references: [id])
+  receiverId Int
+  callType   CallType
+  callStart  DateTime?
+  callEnd    DateTime?
+}
+
+enum CallType {
+  VOICE
+  VIDEO
+}
